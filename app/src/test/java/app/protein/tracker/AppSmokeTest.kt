@@ -152,12 +152,16 @@ class AppSmokeTest {
         shot("06-today-entries")
 
         // Swipe left deletes, Undo brings it back.
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Protein bar"))
+        compose.waitForIdle()
         compose.onNodeWithText("Protein bar").performTouchInput { swipeLeft() }
         waitForText("Removed Protein bar")
         clickText("Undo")
         waitForText("Protein bar")
 
         // Long-press logs the same thing again today.
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Protein bar"))
+        compose.waitForIdle()
         compose.onNodeWithText("Protein bar").performTouchInput { longClick() }
         waitForText("Logged Protein bar again today")
         val todayEntries = {
@@ -173,6 +177,8 @@ class AppSmokeTest {
         }
 
         // Tap opens the editor.
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Chicken, cooked"))
+        compose.waitForIdle()
         clickText("Chicken, cooked")
         waitForText("Save changes")
         pressBack()
