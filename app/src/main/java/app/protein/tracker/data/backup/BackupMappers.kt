@@ -1,9 +1,14 @@
 package app.protein.tracker.data.backup
 
+import app.protein.tracker.data.db.DayActivity
 import app.protein.tracker.data.db.Food
 import app.protein.tracker.data.db.LogEntry
 import app.protein.tracker.domain.BaseUnit
+import app.protein.tracker.domain.Goal
+import app.protein.tracker.domain.GymLevel
+import app.protein.tracker.domain.JobType
 import app.protein.tracker.domain.MealSlot
+import app.protein.tracker.domain.Sex
 import app.protein.tracker.domain.ThemeMode
 import app.protein.tracker.domain.UserSettings
 import java.time.LocalDate
@@ -15,6 +20,17 @@ fun UserSettings.toBackup() = BackupSettings(
     dayStartMinutes = dayStartMinutes,
     theme = themeMode.name,
     dynamicColor = dynamicColor,
+    autoCalories = autoCalories,
+    sex = sex?.name,
+    ageYears = ageYears,
+    heightCm = heightCm,
+    jobType = jobType.name,
+    usualWorkHours = usualWorkHours,
+    goal = goal.name,
+    remindersOn = remindersOn,
+    reminderTimes = reminderTimes,
+    checkInReminderOn = checkInReminderOn,
+    checkInTime = checkInTime,
 )
 
 fun BackupSettings.toSettings() = UserSettings(
@@ -24,6 +40,33 @@ fun BackupSettings.toSettings() = UserSettings(
     dayStartMinutes = dayStartMinutes.coerceIn(0, 24 * 60 - 1),
     themeMode = ThemeMode.entries.firstOrNull { it.name == theme } ?: ThemeMode.SYSTEM,
     dynamicColor = dynamicColor,
+    autoCalories = autoCalories,
+    sex = Sex.entries.firstOrNull { it.name == sex },
+    ageYears = ageYears?.takeIf { it in 10..100 },
+    heightCm = heightCm?.takeIf { it > 0 },
+    jobType = JobType.entries.firstOrNull { it.name == jobType } ?: JobType.FIELD,
+    usualWorkHours = usualWorkHours.coerceIn(0.0, 16.0),
+    goal = Goal.entries.firstOrNull { it.name == goal } ?: Goal.MAINTAIN,
+    remindersOn = remindersOn,
+    reminderTimes = reminderTimes.filter { it in 0 until 24 * 60 }.ifEmpty { listOf(780, 1080, 1260) },
+    checkInReminderOn = checkInReminderOn,
+    checkInTime = checkInTime.coerceIn(0, 24 * 60 - 1),
+)
+
+fun DayActivity.toBackup() = BackupActivity(
+    date = LocalDate.ofEpochDay(day).toString(),
+    worked = worked,
+    workHours = workHours,
+    gym = gym.name,
+    gymMinutes = gymMinutes,
+)
+
+fun BackupActivity.toActivity() = DayActivity(
+    day = LocalDate.parse(date).toEpochDay(),
+    worked = worked,
+    workHours = workHours,
+    gym = GymLevel.entries.firstOrNull { it.name == gym } ?: GymLevel.NONE,
+    gymMinutes = gymMinutes,
 )
 
 fun Food.toBackup() = BackupFood(
@@ -40,6 +83,9 @@ fun Food.toBackup() = BackupFood(
     useCount = useCount,
     lastAmount = lastAmount,
     lastInUnits = lastInUnits,
+    carbsPer100 = carbsPer100,
+    fatPer100 = fatPer100,
+    fiberPer100 = fiberPer100,
 )
 
 fun BackupFood.toFood() = Food(
@@ -56,6 +102,9 @@ fun BackupFood.toFood() = Food(
     useCount = useCount,
     lastAmount = lastAmount,
     lastInUnits = lastInUnits,
+    carbsPer100 = carbsPer100,
+    fatPer100 = fatPer100,
+    fiberPer100 = fiberPer100,
 )
 
 fun LogEntry.toBackup() = BackupEntry(
@@ -75,6 +124,12 @@ fun LogEntry.toBackup() = BackupEntry(
     kcalPer100 = kcalPer100,
     protein = protein,
     kcal = kcal,
+    carbs = carbs,
+    fat = fat,
+    fiber = fiber,
+    carbsPer100 = carbsPer100,
+    fatPer100 = fatPer100,
+    fiberPer100 = fiberPer100,
 )
 
 fun BackupEntry.toEntry() = LogEntry(
@@ -94,6 +149,12 @@ fun BackupEntry.toEntry() = LogEntry(
     kcalPer100 = kcalPer100,
     protein = protein,
     kcal = kcal,
+    carbs = carbs,
+    fat = fat,
+    fiber = fiber,
+    carbsPer100 = carbsPer100,
+    fatPer100 = fatPer100,
+    fiberPer100 = fiberPer100,
 )
 
 private fun baseUnitOf(name: String): BaseUnit =

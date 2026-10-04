@@ -180,3 +180,23 @@ fun CalorieBar(kcal: Double, target: Double, modifier: Modifier = Modifier) {
         )
     }
 }
+
+/** "Carbs 210 g · Fat 55 g · Fibre 22 g" under the calorie bar. */
+@Composable
+fun MacroRow(carbs: Double, fat: Double, fiber: Double, modifier: Modifier = Modifier) {
+    Row(modifier.fillMaxWidth()) {
+        listOf("Carbs" to carbs, "Fat" to fat, "Fibre" to fiber).forEach { (label, grams) ->
+            Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    "${Fmt.protein(grams)} g",
+                    style = MaterialTheme.typography.titleSmall.merge(NumberStyle),
+                )
+                Text(
+                    label,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}

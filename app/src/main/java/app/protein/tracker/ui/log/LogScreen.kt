@@ -586,6 +586,14 @@ private fun AmountStep(
                         "${Fmt.kcal(shownKcal.toDouble())} kcal",
                         style = MaterialTheme.typography.titleMedium.merge(NumberStyle),
                     )
+                    if (pick.carbsPer100 != null || pick.fatPer100 != null) {
+                        fun part(per100: Double?) = Fmt.protein((per100 ?: 0.0) * quantity / 100.0)
+                        Text(
+                            "Carbs ${part(pick.carbsPer100)} g · Fat ${part(pick.fatPer100)} g · " +
+                                "Fibre ${part(pick.fiberPer100)} g",
+                            style = MaterialTheme.typography.bodySmall.merge(NumberStyle),
+                        )
+                    }
                 }
             }
 

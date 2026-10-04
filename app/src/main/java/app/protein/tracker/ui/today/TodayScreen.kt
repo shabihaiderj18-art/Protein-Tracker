@@ -23,6 +23,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import app.protein.tracker.domain.Fmt
 import app.protein.tracker.ui.components.CalorieBar
 import app.protein.tracker.ui.components.EmptyState
+import app.protein.tracker.ui.components.MacroRow
 import app.protein.tracker.ui.components.ProteinRing
 import app.protein.tracker.ui.components.ScreenTitle
 import app.protein.tracker.ui.components.SectionCard
@@ -36,6 +37,7 @@ fun TodayScreen(
     contentPadding: PaddingValues,
     onEditEntry: (Long) -> Unit,
     onLogFood: () -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     val container = rememberAppContainer()
     val viewModel: TodayViewModel = viewModel { TodayViewModel(container.repository, container.settings) }
@@ -57,8 +59,23 @@ fun TodayScreen(
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                     ProteinRing(eaten = state.protein, target = state.settings.proteinTarget)
                     Spacer(Modifier.height(24.dp))
-                    CalorieBar(kcal = state.kcal, target = state.settings.kcalTarget)
+                    CalorieBar(kcal = state.kcal, target = state.kcalTarget)
+                    Spacer(Modifier.height(16.dp))
+                    MacroRow(carbs = state.carbs, fat = state.fat, fiber = state.fiber)
                 }
+            }
+        }
+        if (state.loaded && state.settings.autoCalories) {
+            item(key = "check-in") {
+                CheckInCard(
+                    settings = state.settings,
+                    activity = state.activity,
+                    usualDay = viewModel.usualDay(state.settings),
+                    kcalTarget = state.kcalTarget,
+                    onSave = { viewModel.saveActivity(state.day, it) },
+                    onOpenSettings = onOpenSettings,
+                    modifier = Modifier.padding(top = 12.dp),
+                )
             }
         }
         if (state.loaded && state.entries.isEmpty()) {

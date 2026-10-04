@@ -15,6 +15,16 @@ data class BackupFile(
     val settings: BackupSettings = BackupSettings(),
     val foods: List<BackupFood> = emptyList(),
     val entries: List<BackupEntry> = emptyList(),
+    val activity: List<BackupActivity> = emptyList(),
+)
+
+@Serializable
+data class BackupActivity(
+    val date: String,
+    val worked: Boolean,
+    val workHours: Double,
+    val gym: String,
+    val gymMinutes: Int,
 )
 
 @Serializable
@@ -25,6 +35,17 @@ data class BackupSettings(
     val dayStartMinutes: Int = 240,
     val theme: String = "SYSTEM",
     val dynamicColor: Boolean = true,
+    val autoCalories: Boolean = false,
+    val sex: String? = null,
+    val ageYears: Int? = null,
+    val heightCm: Double? = null,
+    val jobType: String = "FIELD",
+    val usualWorkHours: Double = 7.0,
+    val goal: String = "MAINTAIN",
+    val remindersOn: Boolean = false,
+    val reminderTimes: List<Int> = listOf(780, 1080, 1260),
+    val checkInReminderOn: Boolean = true,
+    val checkInTime: Int = 540,
 )
 
 @Serializable
@@ -42,6 +63,9 @@ data class BackupFood(
     val useCount: Int = 0,
     val lastAmount: Double? = null,
     val lastInUnits: Boolean = false,
+    val carbsPer100: Double? = null,
+    val fatPer100: Double? = null,
+    val fiberPer100: Double? = null,
 )
 
 @Serializable
@@ -63,6 +87,12 @@ data class BackupEntry(
     val kcalPer100: Double? = null,
     val protein: Double,
     val kcal: Double,
+    val carbs: Double = 0.0,
+    val fat: Double = 0.0,
+    val fiber: Double = 0.0,
+    val carbsPer100: Double? = null,
+    val fatPer100: Double? = null,
+    val fiberPer100: Double? = null,
 )
 
 class NotABackupException(message: String) : Exception(message)

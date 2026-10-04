@@ -1,6 +1,17 @@
 package app.protein.tracker.ui.settings
 
 import android.net.Uri
+import app.protein.tracker.work.Background
+import app.protein.tracker.work.AutoBackup
+import app.protein.tracker.domain.Sex
+import app.protein.tracker.domain.JobType
+import app.protein.tracker.domain.GymLevel
+import app.protein.tracker.domain.Goal
+import app.protein.tracker.domain.Energy
+import app.protein.tracker.domain.ActivityInput
+import androidx.compose.foundation.layout.Arrangement
+import android.content.Intent
+import android.Manifest
 import android.os.Build
 import android.text.format.DateFormat
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -118,7 +129,7 @@ class SettingsViewModel(
     }
 }
 
-private enum class SettingsDialog { PROTEIN, KCAL, WEIGHT, DAY_START, IMPORT }
+private enum class SettingsDialog { PROTEIN, KCAL, WEIGHT, DAY_START, IMPORT, AGE, HEIGHT, WORK_HOURS, REMIND_0, REMIND_1, REMIND_2, CHECK_IN }
 
 @Composable
 fun SettingsScreen(contentPadding: PaddingValues) {
@@ -140,6 +151,22 @@ fun SettingsScreen(contentPadding: PaddingValues) {
     }
     val csvLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
         if (uri != null) viewModel.exportCsv(uri) { snack.show(it) }
+    }
+    val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) {
+            viewModel.update { it.copy(remindersOn = true) }
+        } else {
+            snack.show("Allow notifications for Protein in your phone's settings to get reminders")
+        }
+    }
+    val folderLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        if (uri != null) {
+            val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            runCatching { context.contentResolver.takePersistableUriPermission(uri, flags) }
+            viewModel.update { it.copy(autoBackupFolder = uri.toString()) }
+            Background.backupNow(context)
+            snack.show("Daily backup turned on")
+        }
     }
     val versionName = remember(context) {
         runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull() ?: ""
@@ -187,6 +214,105 @@ fun SettingsScreen(contentPadding: PaddingValues) {
                             weightKg = weight,
                             currentTarget = settings.proteinTarget,
                             onUse = { grams -> viewModel.update { it.copy(proteinTarget = grams) } },
+                        )
+                    }
+                }
+            }
+        }
+
+        item(key = "calories") {
+            Column {
+                SectionLabel("Calorie target")
+                SectionCard(padded = false) {
+                    SwitchRow(
+                        title = "Automatic calorie target",
+                        subtitle = "Adjusts each day to your work hours and gym. Uses your weight, height, age and sex.",
+                        checked = settings.autoCalories,
+                        onChange = { on -> viewModel.update { it.copy(autoCalories = on) } },
+                    )
+                    if (settings.autoCalories) {
+                        Divider()
+                        Column(Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
+                            Text("Sex", style = MaterialTheme.typography.bodyLarge)
+                            Spacer(Modifier.height(8.dp))
+                            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                                Sex.entries.forEachIndexed { index, sex ->
+                                    SegmentedButton(
+                                        selected = settings.sex == sex,
+                                        onClick = { viewModel.update { it.copy(sex = sex) } },
+                                        shape = SegmentedButtonDefaults.itemShape(index = index, count = Sex.entries.size),
+                                    ) { Text(sex.label) }
+                                }
+                            }
+                        }
+                        Divider()
+                        SettingRow(
+                            title = "Age",
+                            value = settings.ageYears?.let { "$it years" } ?: "Not set",
+                            onClick = { dialog = SettingsDialog.AGE },
+                        )
+                        Divider()
+                        SettingRow(
+                            title = "Height",
+                            subtitle = settings.heightCm?.let { feetInches(it) },
+                            value = settings.heightCm?.let { "${Fmt.amount(it)} cm" } ?: "Not set",
+                            onClick = { dialog = SettingsDialog.HEIGHT },
+                        )
+                        Divider()
+                        SettingRow(
+                            title = "Body weight",
+                            value = settings.bodyWeightKg?.let { "${Fmt.amount(it)} kg" } ?: "Not set",
+                            onClick = { dialog = SettingsDialog.WEIGHT },
+                        )
+                        Divider()
+                        Column(Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
+                            Text("Your job", style = MaterialTheme.typography.bodyLarge)
+                            Spacer(Modifier.height(8.dp))
+                            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                                JobType.entries.forEachIndexed { index, job ->
+                                    SegmentedButton(
+                                        selected = settings.jobType == job,
+                                        onClick = { viewModel.update { it.copy(jobType = job) } },
+                                        shape = SegmentedButtonDefaults.itemShape(index = index, count = JobType.entries.size),
+                                    ) { Text(job.label, maxLines = 1) }
+                                }
+                            }
+                        }
+                        Divider()
+                        SettingRow(
+                            title = "Usual work hours",
+                            subtitle = "Used until you answer the daily check-in",
+                            value = "${Fmt.amount(settings.usualWorkHours)} h",
+                            onClick = { dialog = SettingsDialog.WORK_HOURS },
+                        )
+                        Divider()
+                        Column(Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
+                            Text("Goal", style = MaterialTheme.typography.bodyLarge)
+                            Spacer(Modifier.height(8.dp))
+                            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                                Goal.entries.forEachIndexed { index, goal ->
+                                    SegmentedButton(
+                                        selected = settings.goal == goal,
+                                        onClick = { viewModel.update { it.copy(goal = goal) } },
+                                        shape = SegmentedButtonDefaults.itemShape(index = index, count = Goal.entries.size),
+                                    ) { Text(goal.label, maxLines = 1) }
+                                }
+                            }
+                        }
+                        val rest = Energy.dayTarget(settings, ActivityInput(false, 0.0, GymLevel.NONE, 0))
+                        val work = Energy.dayTarget(settings, ActivityInput(true, settings.usualWorkHours, GymLevel.NONE, 0))
+                        val gym = Energy.dayTarget(settings, ActivityInput(true, settings.usualWorkHours, GymLevel.MODERATE, 60))
+                        Divider()
+                        Text(
+                            if (rest != null && work != null && gym != null) {
+                                "Day off: ${Fmt.kcal(rest)} kcal · Work day: ${Fmt.kcal(work)} kcal · " +
+                                    "Work + 1 h gym: ${Fmt.kcal(gym)} kcal"
+                            } else {
+                                "Fill in sex, age, height and weight to see your targets."
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp),
                         )
                     }
                 }
@@ -243,6 +369,54 @@ fun SettingsScreen(contentPadding: PaddingValues) {
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                }
+            }
+        }
+
+        item(key = "reminders") {
+            Column {
+                SectionLabel("Notifications")
+                SectionCard(padded = false) {
+                    SwitchRow(
+                        title = "Progress reminders",
+                        subtitle = "Tells you how much protein and how many calories are still to go",
+                        checked = settings.remindersOn,
+                        onChange = { on ->
+                            if (on && Build.VERSION.SDK_INT >= 33) {
+                                notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            } else {
+                                viewModel.update { it.copy(remindersOn = on) }
+                            }
+                        },
+                    )
+                    if (settings.remindersOn) {
+                        listOf(SettingsDialog.REMIND_0, SettingsDialog.REMIND_1, SettingsDialog.REMIND_2)
+                            .forEachIndexed { index, which ->
+                                Divider()
+                                SettingRow(
+                                    title = "Reminder ${index + 1}",
+                                    value = settings.reminderTimes.getOrNull(index)?.let { Fmt.timeOfDay(it) } ?: "Off",
+                                    onClick = { dialog = which },
+                                )
+                            }
+                        if (settings.autoCalories) {
+                            Divider()
+                            SwitchRow(
+                                title = "Morning check-in",
+                                subtitle = "Asks about work and gym at ${Fmt.timeOfDay(settings.checkInTime)}",
+                                checked = settings.checkInReminderOn,
+                                onChange = { on -> viewModel.update { it.copy(checkInReminderOn = on) } },
+                            )
+                            if (settings.checkInReminderOn) {
+                                Divider()
+                                SettingRow(
+                                    title = "Check-in time",
+                                    value = Fmt.timeOfDay(settings.checkInTime),
+                                    onClick = { dialog = SettingsDialog.CHECK_IN },
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -311,6 +485,36 @@ fun SettingsScreen(contentPadding: PaddingValues) {
                         subtitle = "Opens in Excel or Google Sheets",
                         onClick = { csvLauncher.launch("protein-entries-${LocalDate.now()}.csv") },
                     )
+                    Divider()
+                    val folder = settings.autoBackupFolder
+                    if (folder == null) {
+                        SettingRow(
+                            title = "Automatic daily backup",
+                            subtitle = "Pick a folder once. A backup is saved there every day; the newest 10 are kept.",
+                            value = "Off",
+                            onClick = { folderLauncher.launch(null) },
+                        )
+                    } else {
+                        SettingRow(
+                            title = "Automatic daily backup",
+                            subtitle = "Folder: ${AutoBackup.folderLabel(folder)} · " +
+                                (settings.lastAutoBackupAt?.let { "last backup ${lastBackupText(it)}" } ?: "no backup yet"),
+                            value = "On",
+                            onClick = { folderLauncher.launch(null) },
+                        )
+                        Row(
+                            modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            TextButton(onClick = {
+                                Background.backupNow(context)
+                                snack.show("Backing up now")
+                            }) { Text("Back up now") }
+                            TextButton(onClick = { viewModel.update { it.copy(autoBackupFolder = null) } }) {
+                                Text("Turn off")
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -358,7 +562,65 @@ fun SettingsScreen(contentPadding: PaddingValues) {
                 dialog = null
             },
         )
-        SettingsDialog.DAY_START -> DayStartDialog(
+        SettingsDialog.AGE -> NumberDialog(
+            title = "Age",
+            initial = settings.ageYears?.toDouble(),
+            suffix = "years",
+            onDismiss = { dialog = null },
+            onConfirm = { value ->
+                viewModel.update { it.copy(ageYears = value?.toInt()?.coerceIn(10, 100)) }
+                dialog = null
+            },
+        )
+        SettingsDialog.HEIGHT -> NumberDialog(
+            title = "Height",
+            initial = settings.heightCm,
+            suffix = "cm",
+            message = "In centimetres. For example 5 ft 4 in = 163 cm, 5 ft 8 in = 173 cm.",
+            onDismiss = { dialog = null },
+            onConfirm = { value ->
+                viewModel.update { it.copy(heightCm = value?.coerceIn(100.0, 230.0)) }
+                dialog = null
+            },
+        )
+        SettingsDialog.WORK_HOURS -> NumberDialog(
+            title = "Usual work hours",
+            initial = settings.usualWorkHours,
+            suffix = "hours",
+            onDismiss = { dialog = null },
+            onConfirm = { value ->
+                if (value != null) viewModel.update { it.copy(usualWorkHours = value.coerceIn(0.5, 16.0)) }
+                dialog = null
+            },
+        )
+        SettingsDialog.REMIND_0, SettingsDialog.REMIND_1, SettingsDialog.REMIND_2 -> {
+            val index = dialog!!.ordinal - SettingsDialog.REMIND_0.ordinal
+            TimeDialog(
+                title = "Reminder ${index + 1}",
+                initialMinutes = settings.reminderTimes.getOrNull(index) ?: (12 * 60),
+                onDismiss = { dialog = null },
+                onConfirm = { minutes ->
+                    viewModel.update {
+                        val times = it.reminderTimes.toMutableList()
+                        while (times.size <= index) times += 12 * 60
+                        times[index] = minutes
+                        it.copy(reminderTimes = times)
+                    }
+                    dialog = null
+                },
+            )
+        }
+        SettingsDialog.CHECK_IN -> TimeDialog(
+            title = "Check-in time",
+            initialMinutes = settings.checkInTime,
+            onDismiss = { dialog = null },
+            onConfirm = { minutes ->
+                viewModel.update { it.copy(checkInTime = minutes) }
+                dialog = null
+            },
+        )
+        SettingsDialog.DAY_START -> TimeDialog(
+            title = "Day starts at",
             initialMinutes = settings.dayStartMinutes,
             onDismiss = { dialog = null },
             onConfirm = { minutes ->
@@ -464,7 +726,7 @@ private fun WeightSuggestion(weightKg: Double, currentTarget: Double, onUse: (Do
 }
 
 @Composable
-private fun DayStartDialog(initialMinutes: Int, onDismiss: () -> Unit, onConfirm: (Int) -> Unit) {
+private fun TimeDialog(title: String, initialMinutes: Int, onDismiss: () -> Unit, onConfirm: (Int) -> Unit) {
     val context = LocalContext.current
     val state = rememberTimePickerState(
         initialHour = initialMinutes / 60,
@@ -473,7 +735,7 @@ private fun DayStartDialog(initialMinutes: Int, onDismiss: () -> Unit, onConfirm
     )
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Day starts at") },
+        title = { Text(title) },
         text = { TimePicker(state = state) },
         confirmButton = {
             TextButton(onClick = { onConfirm(state.hour * 60 + state.minute) }) { Text("Save") }
@@ -482,4 +744,46 @@ private fun DayStartDialog(initialMinutes: Int, onDismiss: () -> Unit, onConfirm
             TextButton(onClick = onDismiss) { Text("Cancel") }
         },
     )
+}
+
+@Composable
+private fun SwitchRow(title: String, subtitle: String?, checked: Boolean, onChange: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onChange(!checked) }
+            .heightIn(min = 64.dp)
+            .padding(horizontal = 20.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge)
+            if (subtitle != null) {
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        Spacer(Modifier.width(12.dp))
+        Switch(checked = checked, onCheckedChange = onChange)
+    }
+}
+
+/** 162.6 cm → "5 ft 4 in" */
+private fun feetInches(cm: Double): String {
+    val totalInches = (cm / 2.54).roundToInt()
+    return "${totalInches / 12} ft ${totalInches % 12} in"
+}
+
+private fun lastBackupText(millis: Long): String {
+    val time = java.time.Instant.ofEpochMilli(millis).atZone(java.time.ZoneId.systemDefault())
+    val day = time.toLocalDate()
+    val clock = Fmt.timeOfDay(time.hour * 60 + time.minute)
+    return when (day) {
+        LocalDate.now() -> "today $clock"
+        LocalDate.now().minusDays(1) -> "yesterday $clock"
+        else -> Fmt.shortDate(day.toEpochDay())
+    }
 }

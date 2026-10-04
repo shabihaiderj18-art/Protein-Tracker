@@ -21,11 +21,19 @@ abstract class BackupDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract suspend fun insertEntries(entries: List<LogEntry>)
 
+    @Query("DELETE FROM day_activity")
+    abstract suspend fun clearActivity()
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    abstract suspend fun insertActivity(activity: List<DayActivity>)
+
     @Transaction
-    open suspend fun replaceAll(foods: List<Food>, entries: List<LogEntry>) {
+    open suspend fun replaceAll(foods: List<Food>, entries: List<LogEntry>, activity: List<DayActivity>) {
         clearEntries()
         clearFoods()
+        clearActivity()
         insertFoods(foods)
         insertEntries(entries)
+        insertActivity(activity)
     }
 }

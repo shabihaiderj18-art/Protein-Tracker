@@ -67,6 +67,9 @@ fun FoodEditor(
     var baseUnit by remember { mutableStateOf(initial?.baseUnit ?: BaseUnit.GRAM) }
     var kcal by remember { mutableStateOf(initial?.kcalPer100?.let { Fmt.plain(it) } ?: "") }
     var protein by remember { mutableStateOf(initial?.proteinPer100?.let { Fmt.plain(it) } ?: "") }
+    var carbs by remember { mutableStateOf(initial?.carbsPer100?.let { Fmt.plain(it) } ?: "") }
+    var fat by remember { mutableStateOf(initial?.fatPer100?.let { Fmt.plain(it) } ?: "") }
+    var fiber by remember { mutableStateOf(initial?.fiberPer100?.let { Fmt.plain(it) } ?: "") }
     var unitName by remember { mutableStateOf(initial?.unitName ?: "") }
     var unitSize by remember { mutableStateOf(initial?.unitSize?.let { Fmt.plain(it) } ?: "") }
     var note by remember { mutableStateOf(initial?.note ?: "") }
@@ -79,10 +82,13 @@ fun FoodEditor(
     val unitSizeValue = Nutrition.parseAmount(unitSize)
     val unitBlank = unitName.isBlank() && unitSize.isBlank()
     val unitOk = unitBlank || (unitName.isNotBlank() && unitSizeValue != null && unitSizeValue > 0.0)
-    val valid = name.isNotBlank() && kcalValue != null && proteinValue != null && unitOk
+    // Optional nutrients: empty is fine, but anything typed must be a number.
+    fun optional(text: String): Double? = if (text.isBlank()) null else Nutrition.parseAmount(text)
+    val extrasOk = listOf(carbs, fat, fiber).all { it.isBlank() || Nutrition.parseAmount(it) != null }
+    val valid = name.isNotBlank() && kcalValue != null && proteinValue != null && unitOk && extrasOk
 
     val save: () -> Unit = {
-        if (name.isNotBlank() && kcalValue != null && proteinValue != null && unitOk) {
+        if (name.isNotBlank() && kcalValue != null && proteinValue != null && unitOk && extrasOk) {
             val hasUnit = !unitBlank
             val base = initial ?: Food(name = "", kcalPer100 = 0.0, proteinPer100 = 0.0)
             onSave(
@@ -96,6 +102,9 @@ fun FoodEditor(
                     note = note.trim().ifBlank { null },
                     isFavorite = favorite,
                     lastInUnits = base.lastInUnits && hasUnit,
+                    carbsPer100 = optional(carbs),
+                    fatPer100 = optional(fat),
+                    fiberPer100 = optional(fiber),
                 )
             )
         }
@@ -177,6 +186,28 @@ fun FoodEditor(
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
                     )
+                }
+            }
+
+            Column {
+                Text("Optional, per 100 ${baseUnit.symbol}", style = MaterialTheme.typography.titleSmall)
+                Spacer(Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    listOf(
+                        Triple("Carbs", carbs) { v: String -> carbs = v },
+                        Triple("Fat", fat) { v: String -> fat = v },
+                        Triple("Fibre", fiber) { v: String -> fiber = v },
+                    ).forEach { (label, value, onChange) ->
+                        OutlinedTextField(
+                            value = value,
+                            onValueChange = onChange,
+                            modifier = Modifier.weight(1f),
+                            label = { Text(label) },
+                            suffix = { Text("g") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
+                        )
+                    }
                 }
             }
 

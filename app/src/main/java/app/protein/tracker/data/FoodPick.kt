@@ -19,6 +19,9 @@ data class FoodPick(
     val unitSize: Double?,
     val initialAmount: Double,
     val initialInUnits: Boolean,
+    val carbsPer100: Double? = null,
+    val fatPer100: Double? = null,
+    val fiberPer100: Double? = null,
 ) {
     val hasUnit: Boolean
         get() = !unitName.isNullOrBlank() && (unitSize ?: 0.0) > 0.0
@@ -41,6 +44,9 @@ data class FoodPick(
                 unitSize = food.unitSize,
                 initialAmount = amount,
                 initialInUnits = inUnits,
+                carbsPer100 = food.carbsPer100,
+                fatPer100 = food.fatPer100,
+                fiberPer100 = food.fiberPer100,
             )
         }
 
@@ -54,6 +60,9 @@ data class FoodPick(
             unitSize = entry.unitSize,
             initialAmount = entry.amount,
             initialInUnits = entry.inUnits,
+            carbsPer100 = entry.carbsPer100,
+            fatPer100 = entry.fatPer100,
+            fiberPer100 = entry.fiberPer100,
         )
     }
 }

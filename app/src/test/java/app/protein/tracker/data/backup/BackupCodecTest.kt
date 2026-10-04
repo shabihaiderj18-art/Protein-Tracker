@@ -56,9 +56,9 @@ class BackupCodecTest {
     fun csvEscapesAndFormats() {
         val csv = CsvExport.build(sample.entries, ZoneOffset.UTC)
         val lines = csv.trimEnd().split("\r\n")
-        assertEquals("date,time,meal,food,amount,unit,quantity,base_unit,protein_g,kcal", lines[0])
+        assertEquals("date,time,meal,food,amount,unit,quantity,base_unit,protein_g,kcal,carbs_g,fat_g,fiber_g", lines[0])
         assertTrue(lines[1].startsWith("2026-10-01,"))
-        assertTrue(lines[1].endsWith(",Morning,Egg,2,egg,100,g,12.6,143"))
-        assertTrue(lines[2].contains(",Night,\"Shake, \"\"large\"\"\",,,,,30,250"))
+        assertTrue(lines[1].endsWith(",Morning,Egg,2,egg,100,g,12.6,143,0,0,0"))
+        assertTrue(lines[2].contains(",Night,\"Shake, \"\"large\"\"\",,,,,30,250,0,0,0"))
     }
 }

@@ -10,6 +10,7 @@ import java.time.format.DateTimeFormatter
 object CsvExport {
     private val header = listOf(
         "date", "time", "meal", "food", "amount", "unit", "quantity", "base_unit", "protein_g", "kcal",
+        "carbs_g", "fat_g", "fiber_g",
     )
 
     fun build(entries: List<BackupEntry>, zone: ZoneId = ZoneId.systemDefault()): String {
@@ -37,6 +38,9 @@ object CsvExport {
                         if (isQuick) "" else baseSymbol(e.baseUnit),
                         number(e.protein),
                         number(e.kcal),
+                        number(e.carbs),
+                        number(e.fat),
+                        number(e.fiber),
                     )
                 )
             }

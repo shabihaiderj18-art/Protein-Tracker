@@ -23,6 +23,10 @@ data class Food(
     /** The amount used last time, so logging the same portion again is one tap. */
     val lastAmount: Double? = null,
     val lastInUnits: Boolean = false,
+    /** Optional extra nutrients per 100 g (or 100 ml). Null = unknown. */
+    val carbsPer100: Double? = null,
+    val fatPer100: Double? = null,
+    val fiberPer100: Double? = null,
 )
 
 val Food.hasUnit: Boolean

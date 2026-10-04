@@ -144,6 +144,7 @@ fun ProteinAppUi() {
                                 contentPadding = innerPadding,
                                 onEditEntry = { id -> panel = Panel.Log(LogRequest.Edit(id)) },
                                 onLogFood = { panel = Panel.Log(LogRequest.New()) },
+                                onOpenSettings = { tab = Tab.SETTINGS },
                             )
                             Tab.HISTORY -> HistoryScreen(
                                 contentPadding = innerPadding,

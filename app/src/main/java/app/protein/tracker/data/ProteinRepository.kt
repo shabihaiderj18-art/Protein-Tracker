@@ -5,15 +5,21 @@ import app.protein.tracker.data.backup.BackupCodec
 import app.protein.tracker.data.backup.BackupFile
 import app.protein.tracker.data.backup.CsvExport
 import app.protein.tracker.data.backup.NotABackupException
+import app.protein.tracker.data.backup.toActivity
 import app.protein.tracker.data.backup.toBackup
 import app.protein.tracker.data.backup.toEntry
 import app.protein.tracker.data.backup.toFood
 import app.protein.tracker.data.backup.toSettings
 import app.protein.tracker.data.db.AppDatabase
+import app.protein.tracker.data.db.DayActivity
 import app.protein.tracker.data.db.Food
 import app.protein.tracker.data.db.LogEntry
 import app.protein.tracker.data.settings.SettingsRepository
+import app.protein.tracker.domain.ActivityInput
 import app.protein.tracker.domain.DayClock
+import app.protein.tracker.domain.Energy
+import app.protein.tracker.domain.GymLevel
+import app.protein.tracker.domain.UserSettings
 import app.protein.tracker.domain.DayTotal
 import app.protein.tracker.domain.MealSlot
 import app.protein.tracker.domain.Nutrition
@@ -31,6 +37,7 @@ class ProteinRepository(
     private val foodDao = database.foodDao()
     private val entryDao = database.entryDao()
     private val backupDao = database.backupDao()
+    private val activityDao = database.dayActivityDao()
 
     val foods: Flow<List<Food>> = foodDao.observeAll()
     val dayTotals: Flow<List<DayTotal>> = entryDao.observeDayTotals()
@@ -87,6 +94,12 @@ class ProteinRepository(
                 kcalPer100 = pick.kcalPer100,
                 protein = nutrients.protein,
                 kcal = nutrients.kcal,
+                carbs = per100(pick.carbsPer100, quantity),
+                fat = per100(pick.fatPer100, quantity),
+                fiber = per100(pick.fiberPer100, quantity),
+                carbsPer100 = pick.carbsPer100,
+                fatPer100 = pick.fatPer100,
+                fiberPer100 = pick.fiberPer100,
             )
         )
         pick.foodId?.let { foodDao.markUsed(it, now, amount, useUnits) }
@@ -107,9 +120,37 @@ class ProteinRepository(
                 meal = meal,
                 protein = nutrients.protein,
                 kcal = nutrients.kcal,
+                carbs = per100(pick.carbsPer100, quantity),
+                fat = per100(pick.fatPer100, quantity),
+                fiber = per100(pick.fiberPer100, quantity),
             )
         )
     }
+
+    private fun per100(valuePer100: Double?, quantity: Double): Double = (valuePer100 ?: 0.0) * quantity / 100.0
+
+    // ---- Daily activity check-in ----
+
+    fun observeActivity(day: Long): Flow<DayActivity?> = activityDao.observe(day)
+
+    suspend fun saveActivity(activity: DayActivity) = activityDao.upsert(activity)
+
+    /**
+     * The day's calorie target. With the automatic target on, it comes from your profile and
+     * the day's check-in; before you check in, a usual work day without gym is assumed.
+     */
+    fun kcalTargetFor(settings: UserSettings, activity: DayActivity?): Double {
+        if (!settings.autoCalories) return settings.kcalTarget
+        val input = activity?.toInput() ?: usualDay(settings)
+        return Energy.dayTarget(settings, input) ?: settings.kcalTarget
+    }
+
+    fun usualDay(settings: UserSettings) = ActivityInput(
+        worked = true,
+        workHours = settings.usualWorkHours,
+        gym = GymLevel.NONE,
+        gymMinutes = 60,
+    )
 
     suspend fun logQuick(name: String, protein: Double, kcal: Double, meal: MealSlot, day: Long?): Long =
         entryDao.insert(
@@ -161,6 +202,7 @@ class ProteinRepository(
             settings = settingsRepository.settings.first().toBackup(),
             foods = foodDao.getAll().map { it.toBackup() },
             entries = entryDao.getAll().map { it.toBackup() },
+            activity = activityDao.getAll().map { it.toBackup() },
         )
         return BackupCodec.encode(file)
     }
@@ -170,14 +212,23 @@ class ProteinRepository(
         val file = BackupCodec.decode(text)
         val foods: List<Food>
         val entries: List<LogEntry>
+        val activity: List<DayActivity>
         try {
             foods = file.foods.map { it.toFood() }
             entries = file.entries.map { it.toEntry() }
+            activity = file.activity.map { it.toActivity() }
         } catch (e: Exception) {
             throw NotABackupException("This backup file is damaged.")
         }
-        backupDao.replaceAll(foods, entries)
-        settingsRepository.replace(file.settings.toSettings())
+        backupDao.replaceAll(foods, entries, activity)
+        val current = settingsRepository.settings.first()
+        // The backup folder belongs to this phone, so it is kept as it is.
+        settingsRepository.replace(
+            file.settings.toSettings().copy(
+                autoBackupFolder = current.autoBackupFolder,
+                lastAutoBackupAt = current.lastAutoBackupAt,
+            )
+        )
         return ImportSummary(foods = foods.size, entries = entries.size)
     }
 

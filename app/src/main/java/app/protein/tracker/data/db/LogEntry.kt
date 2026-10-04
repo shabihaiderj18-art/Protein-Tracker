@@ -1,5 +1,6 @@
 package app.protein.tracker.data.db
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -33,6 +34,12 @@ data class LogEntry(
     val kcalPer100: Double? = null,
     val protein: Double,
     val kcal: Double,
+    @ColumnInfo(defaultValue = "0") val carbs: Double = 0.0,
+    @ColumnInfo(defaultValue = "0") val fat: Double = 0.0,
+    @ColumnInfo(defaultValue = "0") val fiber: Double = 0.0,
+    val carbsPer100: Double? = null,
+    val fatPer100: Double? = null,
+    val fiberPer100: Double? = null,
 )
 
 val LogEntry.isQuick: Boolean

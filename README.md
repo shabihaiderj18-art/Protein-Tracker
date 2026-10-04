@@ -4,6 +4,7 @@ A simple, offline Android app for tracking daily **protein** (the main number) a
 Logging a meal takes a few seconds: tap **Log food**, type two or three letters, tap the food, type the amount, **Save**.
 
 - No account, no internet permission, no ads. Your data stays on your phone.
+  The only permission is notifications, and only if you turn reminders on.
 - Neutral colours throughout: no red, no warnings, no streaks.
 
 ## Features
@@ -18,6 +19,11 @@ Logging a meal takes a few seconds: tap **Log food**, type two or three letters,
 - **Day boundary**: a new day starts at midnight or at a time you choose (default 4:00 AM), so late-night snacks count toward the day you ate them.
 - **History**: a weekly bar chart with the 7-day average drawn as a line, a calendar to open any past day, and monthly averages.
 - **Foods**: over 180 starter foods, including Indian dishes (raw and cooked), values per 100 g. Edit any value, add your own, and filter to your favourites.
+- **Automatic calorie target**: from your weight, height, age and sex, adjusted each day by a quick check-in
+  (work hours, gym or not). Protein stays your main target.
+- **Carbs, fat and fibre** for every food, with daily totals under the calorie bar.
+- **Reminders**: up to three a day with how much protein and how many calories are still to go, plus a morning check-in.
+- **Automatic daily backup** to a folder you pick; the newest 10 backups are kept.
 - **Settings**: protein and calorie targets, optional body weight with a suggested 1.6–2.0 g/kg range, day-start time,
   theme (system/light/dark), wallpaper colours (Android 12+), JSON backup export/import and CSV export.
 
