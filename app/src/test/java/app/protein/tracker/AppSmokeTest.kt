@@ -110,9 +110,9 @@ class AppSmokeTest {
         // 150 g of chicken, found with a misspelling.
         clickText("Log food")
         waitForText("Search foods")
-        waitForText("Sugar")
+        waitForText("Whey protein")
         shot("02-log-list")
-        compose.onNode(hasSetTextAction()).performTextInput("chikn")
+        compose.onNode(hasSetTextAction()).performTextInput("chiken cooked")
         waitForText("Chicken, cooked")
         shot("03-log-search")
         clickText("Chicken, cooked")

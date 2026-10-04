@@ -56,6 +56,7 @@ object FuzzySearch {
         }
         .sortedWith(
             compareByDescending<Pair<T, Double>> { it.second }
+                .thenBy { name(it.first).length }
                 .thenBy { name(it.first).lowercase(Locale.ROOT) }
         )
         .map { it.first }
