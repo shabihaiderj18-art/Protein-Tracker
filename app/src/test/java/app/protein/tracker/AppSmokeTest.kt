@@ -154,7 +154,7 @@ class AppSmokeTest {
         // Swipe left deletes, Undo brings it back.
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("Protein bar"))
         compose.waitForIdle()
-        compose.onNodeWithText("Protein bar").performTouchInput { swipeLeft() }
+        compose.onNodeWithText("Protein bar").performTouchInput { swipeLeft(startX = centerX, endX = left) }
         waitForText("Removed Protein bar")
         clickText("Undo")
         waitForText("Protein bar")
