@@ -17,7 +17,7 @@ Logging a meal takes a few seconds: tap **Log food**, type two or three letters,
 - **Entries**: swipe right to edit, swipe left to delete (with Undo), long-press to log the same thing again today.
 - **Day boundary**: a new day starts at midnight or at a time you choose (default 4:00 AM), so late-night snacks count toward the day you ate them.
 - **History**: a weekly bar chart with the 7-day average drawn as a line, a calendar to open any past day, and monthly averages.
-- **Foods**: 22 starter foods (values per 100 g). Edit any value and add your own foods.
+- **Foods**: over 180 starter foods, including Indian dishes (raw and cooked), values per 100 g. Edit any value, add your own, and filter to your favourites.
 - **Settings**: protein and calorie targets, optional body weight with a suggested 1.6–2.0 g/kg range, day-start time,
   theme (system/light/dark), wallpaper colours (Android 12+), JSON backup export/import and CSV export.
 

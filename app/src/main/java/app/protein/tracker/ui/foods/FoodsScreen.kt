@@ -1,6 +1,9 @@
 package app.protein.tracker.ui.foods
 
 import androidx.compose.foundation.clickable
+import androidx.compose.material3.FilterChip
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -76,10 +79,11 @@ fun FoodsScreen(
     val viewModel: FoodsViewModel = viewModel { FoodsViewModel(container.repository) }
     val foods by viewModel.foods.collectAsStateWithLifecycle()
     var query by rememberSaveable { mutableStateOf("") }
+    var favouritesOnly by rememberSaveable { mutableStateOf(false) }
     val haptics = rememberHaptics()
 
-    val shown = remember(query, foods) {
-        val all = foods.orEmpty()
+    val shown = remember(query, foods, favouritesOnly) {
+        val all = foods.orEmpty().filter { !favouritesOnly || it.isFavorite }
         if (query.isBlank()) {
             all.sortedWith(compareByDescending<Food> { it.isFavorite }.thenBy { it.name.lowercase() })
         } else {
@@ -120,8 +124,36 @@ fun FoodsScreen(
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             )
         }
+        item(key = "filter") {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(bottom = 8.dp),
+            ) {
+                FilterChip(
+                    selected = !favouritesOnly,
+                    onClick = { favouritesOnly = false },
+                    label = { Text("All foods") },
+                )
+                FilterChip(
+                    selected = favouritesOnly,
+                    onClick = { favouritesOnly = true },
+                    label = { Text("Favourites") },
+                    leadingIcon = {
+                        Icon(Icons.Rounded.Favorite, contentDescription = null, modifier = Modifier.size(18.dp))
+                    },
+                )
+            }
+        }
         when {
             foods == null -> Unit
+            shown.isEmpty() && favouritesOnly && query.isBlank() -> item(key = "no-favourites") {
+                EmptyState(
+                    icon = Icons.Rounded.FavoriteBorder,
+                    title = "No favourites yet",
+                    message = "Tap the heart next to any food. Favourites appear first when you log.",
+                    action = { Button(onClick = { favouritesOnly = false }) { Text("Show all foods") } },
+                )
+            }
             shown.isEmpty() && query.isNotBlank() -> item(key = "no-match") {
                 EmptyState(
                     icon = Icons.Rounded.Search,
